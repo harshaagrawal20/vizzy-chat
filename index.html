@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vizzy Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="brand-mark">V</div>
+        <div>
+          <p class="eyebrow">Creative Operating System</p>
+          <h1>Vizzy Chat</h1>
+        </div>
+      </div>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>Modes</h2>
+          <span class="status-pill online">Adaptive</span>
+        </div>
+        <div class="mode-switch" role="tablist" aria-label="Vizzy mode">
+          <button class="mode-button active" data-mode="home" type="button">Homes</button>
+          <button class="mode-button" data-mode="business" type="button">Business</button>
+        </div>
+        <p class="panel-copy" id="modeSummary">
+          Personal artmaking, storytelling, memory visualization, and iterative co-creation in one place.
+        </p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>Taste Memory</h2>
+          <span class="status-pill">Learning</span>
+        </div>
+        <ul class="memory-list" id="memoryList"></ul>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>Creative Pathway</h2>
+        </div>
+        <div class="pathway-card" id="pathwayCard"></div>
+      </section>
+    </aside>
+
+    <main class="workspace">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Single conversational interface</p>
+          <h2>Create, transform, iterate, and deploy content across visual, narrative, and ambient experiences.</h2>
+        </div>
+        <div class="hero-actions">
+          <button class="ghost-button" type="button">Import photo</button>
+          <button class="ghost-button" type="button">Upload brand kit</button>
+        </div>
+      </header>
+
+      <section class="conversation-frame">
+        <div class="message-stream" id="messageStream"></div>
+
+        <div class="composer-shell">
+          <div class="quick-prompts" id="quickPrompts"></div>
+          <label class="composer">
+            <textarea
+              id="promptInput"
+              rows="3"
+              placeholder="Describe what you want Vizzy to create..."
+            ></textarea>
+          </label>
+          <div class="composer-actions">
+            <div class="composer-meta">
+              <span>Images</span>
+              <span>Story</span>
+              <span>Poster</span>
+              <span>Loop</span>
+            </div>
+            <button class="primary-button" id="generateButton" type="button">Generate</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <template id="messageTemplate">
+    <article class="message">
+      <div class="message-header">
+        <span class="message-role"></span>
+        <span class="message-tag"></span>
+      </div>
+      <p class="message-text"></p>
+      <div class="output-grid"></div>
+    </article>
+  </template>
+
+  <template id="outputCardTemplate">
+    <section class="output-card">
+      <div class="output-preview">
+        <div class="preview-glow"></div>
+        <span class="output-type"></span>
+      </div>
+      <div class="output-content">
+        <h3 class="output-title"></h3>
+        <p class="output-description"></p>
+        <div class="output-actions"></div>
+      </div>
+    </section>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>

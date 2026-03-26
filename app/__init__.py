@@ -1,0 +1,1 @@
+"""Vizzy Chat application package."""
