@@ -3,101 +3,157 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vizzy Chat</title>
+  <meta name="description" content="Vizzy Chat — your single conversational interface to create, transform, iterate, and deploy visual, narrative, and experiential content for homes and businesses." />
+  <meta name="theme-color" content="#0f1117" />
+  <title>Vizzy Chat — Creative Operating System</title>
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23ff4f1a'/><text x='50' y='70' font-family='Arial' font-size='60' font-weight='900' fill='white' text-anchor='middle'>V</text></svg>" type="image/svg+xml" />
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
+  <div class="app-frame">
+    <aside class="left-rail">
       <div class="brand-block">
         <div class="brand-mark">V</div>
         <div>
-          <p class="eyebrow">Creative Operating System</p>
+          <p class="brand-kicker">Creative OS</p>
           <h1>Vizzy Chat</h1>
         </div>
       </div>
 
-      <section class="panel">
-        <div class="panel-heading">
-          <h2>Modes</h2>
-          <span class="status-pill online">Live</span>
+      <nav class="nav-panel">
+        <button class="nav-item active" type="button" id="navChat">Creative Workspace</button>
+        <button class="nav-item" type="button">Templates</button>
+        <button class="nav-item" type="button">Projects</button>
+        <button class="nav-item" type="button">Surfaces</button>
+        <button class="nav-item" type="button">Settings</button>
+      </nav>
+
+      <section class="rail-card mode-card">
+        <div class="section-head">
+          <h2>Mode</h2>
+          <span class="pill live">Live</span>
         </div>
         <div class="mode-switch" role="tablist" aria-label="Vizzy mode">
           <button class="mode-button active" data-mode="home" type="button">Homes</button>
           <button class="mode-button" data-mode="business" type="button">Business</button>
         </div>
-        <p class="panel-copy" id="modeSummary"></p>
+        <p class="rail-copy" id="modeSummary"></p>
       </section>
 
-      <section class="panel">
-        <div class="panel-heading">
+      <section class="rail-card">
+        <div class="section-head">
           <h2>Taste Memory</h2>
-          <span class="status-pill">Learning</span>
+          <span class="pill">Learning</span>
         </div>
-        <ul class="memory-list" id="memoryList"></ul>
+        <ul class="stack-list" id="memoryList"></ul>
       </section>
 
-      <section class="panel">
-        <div class="panel-heading">
-          <h2>Pathway</h2>
+      <section class="rail-card">
+        <div class="section-head">
+          <h2>Context</h2>
         </div>
-        <div class="pathway-card" id="pathwayCard"></div>
+        <ul class="stack-list compact" id="contextList"></ul>
       </section>
 
-      <section class="panel">
-        <div class="panel-heading">
-          <h2>Saved Chats</h2>
-        </div>
-        <div class="conversation-list" id="conversationList"></div>
+      <section class="rail-card detail-card" id="deepMemoryPanel"></section>
+      <section class="rail-card detail-card" id="brandKitPanel"></section>
+
+      <section class="promo-card">
+        <p class="promo-kicker">Creative coverage</p>
+        <h3>Visual, narrative, and deploy-ready output in one chat.</h3>
+        <p>Homes get reflection, story, and art. Business gets brand, campaign, signage, and ambience support.</p>
       </section>
     </aside>
 
-    <main class="workspace">
-      <header class="hero">
+    <main class="workspace-shell">
+      <header class="topbar">
         <div>
-          <p class="eyebrow">Conversational creation</p>
-          <h2>Create, transform, iterate, and deploy visual and narrative content from one chat window.</h2>
+          <p class="topbar-kicker">Conversational creation</p>
+          <h2>Creative Workspace</h2>
         </div>
-        <div class="hero-actions">
-          <button class="ghost-button" type="button" id="newChatButton">New chat</button>
+        <div class="topbar-tools">
+          <label class="search-box">
+            <input type="search" placeholder="Search conversations..." id="searchInput" />
+          </label>
+          <button class="icon-button" type="button" id="uploadButton" title="Upload image">+</button>
+          <button class="icon-button" type="button" title="Info">i</button>
         </div>
       </header>
 
-      <section class="conversation-frame">
+      <section class="workspace-panel">
+        <div class="hero-banner">
+          <div>
+            <p class="banner-kicker">Single conversational interface</p>
+            <h3>Create, transform, iterate, and deploy content with one aligned workspace.</h3>
+          </div>
+          <div class="hero-meta" id="capabilityList"></div>
+        </div>
+
         <div class="message-stream" id="messageStream"></div>
 
         <div class="composer-shell">
           <div class="quick-prompts" id="quickPrompts"></div>
+          <input id="fileInput" type="file" accept="image/*" hidden />
+          <div class="attachment-tray" id="attachmentTray"></div>
           <label class="composer">
             <textarea id="promptInput" rows="3" placeholder="Describe what you want Vizzy to create..."></textarea>
           </label>
-          <div class="composer-actions">
-            <div class="composer-meta">
-              <span>Multi-output</span>
-              <span>Iterative</span>
-              <span>Free local render</span>
+          <div class="composer-footer">
+            <div class="composer-meta" id="surfaceList"></div>
+            <div class="composer-controls">
+              <span class="kbd-hint"><kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">Enter</kbd> to send</span>
+              <button class="chip-button upload-chip" type="button" id="uploadChip">📎 Upload</button>
+              <button class="primary-button" id="generateButton" type="button">✨ Generate</button>
             </div>
-            <button class="primary-button" id="generateButton" type="button">Generate</button>
           </div>
         </div>
       </section>
     </main>
+
+    <aside class="history-rail">
+      <div class="history-header">
+        <div>
+          <p class="topbar-kicker">Saved work</p>
+          <h2>History</h2>
+        </div>
+        <span class="pill count" id="historyCount">0</span>
+      </div>
+
+      <div class="history-list" id="conversationList"></div>
+
+      <section class="audit-card">
+        <div class="section-head">
+          <h2>Coverage Check</h2>
+        </div>
+        <ul class="audit-list" id="coverageList"></ul>
+      </section>
+
+      <button class="clear-button" type="button" id="newChatButton">+ New Chat</button>
+    </aside>
   </div>
 
+  <!-- Message Template -->
   <template id="messageTemplate">
-    <article class="message">
+    <article class="message-card">
       <div class="message-header">
         <span class="message-role"></span>
         <span class="message-tag"></span>
       </div>
+      <div class="message-attachments"></div>
       <p class="message-text"></p>
       <div class="output-grid"></div>
     </article>
   </template>
 
+  <!-- Output Card Template -->
   <template id="outputCardTemplate">
     <section class="output-card">
       <div class="output-preview">
@@ -107,10 +163,25 @@
       <div class="output-content">
         <h3 class="output-title"></h3>
         <p class="output-description"></p>
+        <pre class="output-text"></pre>
         <div class="output-actions"></div>
       </div>
     </section>
   </template>
+
+  <!-- Lightbox Overlay -->
+  <div class="lightbox-overlay" id="lightbox" style="display:none">
+    <div class="lightbox-content">
+      <img id="lightboxImage" alt="Full preview" />
+      <div class="lightbox-actions">
+        <button class="lightbox-btn" id="lightboxDownload">⬇ Download</button>
+        <button class="lightbox-btn" id="lightboxClose">✕ Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
 
   <script src="/static/script.js"></script>
 </body>
