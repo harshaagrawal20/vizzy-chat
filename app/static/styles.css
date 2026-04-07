@@ -820,6 +820,45 @@ img {
   flex-wrap: wrap;
 }
 
+/* ── Feedback Row (👍👎 buttons) ────────────────────────────────────────────── */
+.feedback-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  width: 100%;
+}
+
+.feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 36px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.feedback-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.feedback-btn.like:hover {
+  background: var(--success-soft);
+  border-color: var(--success);
+}
+
+.feedback-btn.dislike:hover {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: var(--error);
+}
+
 /* ── Buttons ───────────────────────────────────────────────────────────────── */
 .mini-button,
 .chip-button,
