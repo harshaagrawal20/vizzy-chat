@@ -248,12 +248,3 @@ uvicorn app.main:app --reload --port 8001
 
 ---
 
-## 📜 License
-
-This project is licensed under the MIT License.
-
----
-
-<p align="center">
-  Built with ❤️ using FastAPI, SQLite, and a lot of creative energy.
-</p>
