@@ -1,8 +1,11 @@
+// ── App State ────────────────────────────────────────────────────────────────
 const appState = {
   mode: "home",
   messages: [],
+  conversationId: null,
 };
 
+// ── Sidebar content ──────────────────────────────────────────────────────────
 const modeContent = {
   home: {
     summary:
@@ -15,13 +18,13 @@ const modeContent = {
     pathway: {
       title: "Emotion to Expression",
       body:
-        "Vizzy reads mood, references, and narrative intent, then suggests multiple visual directions with refinement prompts.",
+        "AtelierAI reads mood, references, and narrative intent, then suggests multiple visual directions with refinement prompts.",
     },
     prompts: [
       "Paint something that feels like how my last year felt.",
       "Turn this photo into a renaissance-style artwork.",
       "Generate a story for my kids, then visualize it scene by scene.",
-      "Make a vision board with my goals for the next 3 years.",
+      "Who is Albert Einstein? Tell me about his life.",
     ],
   },
   business: {
@@ -35,86 +38,18 @@ const modeContent = {
     pathway: {
       title: "Brand Intent to Assets",
       body:
-        "Vizzy aligns with your business context, generates campaign-ready options, and adapts them for frame, email, and social surfaces.",
+        "AtelierAI aligns with your business context, generates campaign-ready options, and adapts them for frame, email, and social surfaces.",
     },
     prompts: [
       "Create premium-looking visuals for this product without making it feel expensive.",
       "Create a sale poster that does not feel cheap.",
-      "Design in-store visuals for rainy days.",
-      "Create an Apple-esque product video loop.",
+      "What is machine learning? Explain with examples.",
+      "Calculate 15% of 2500 and explain the result.",
     ],
   },
 };
 
-const starterConversation = {
-  home: [
-    {
-      role: "user",
-      tag: "Prompt",
-      text: "Show me my inner emotional landscape right now.",
-    },
-    {
-      role: "assistant",
-      tag: "Creative plan",
-      text:
-        "I interpreted this as an introspective visual request. I can express it as atmospheric artwork, a symbolic map, and a guided journaling poster so you can choose the form that resonates most.",
-      outputs: [
-        {
-          type: "Artwork",
-          title: "Symbolic Terrain",
-          description: "Layered abstract valleys, warm storm light, and handwritten emotional markers.",
-          actions: ["Refine palette", "Generate 4 more", "Display on frame"],
-        },
-        {
-          type: "Poster",
-          title: "Reflective Mood Map",
-          description: "An elegant emotional landscape with short affirmations and subtle cartographic labels.",
-          actions: ["Add quote", "Export print", "Share"],
-        },
-        {
-          type: "Journal",
-          title: "Prompted Reflection",
-          description: "A companion page that turns the artwork into a guided self-reflection session.",
-          actions: ["Open prompts", "Save session"],
-        },
-      ],
-    },
-  ],
-  business: [
-    {
-      role: "user",
-      tag: "Brief",
-      text: "Create premium-looking visuals for this product without making it feel expensive.",
-    },
-    {
-      role: "assistant",
-      tag: "Campaign route",
-      text:
-        "I balanced premium cues with warmth and accessibility. Here are three outputs tuned for in-store screens, social placements, and quick promotional reuse.",
-      outputs: [
-        {
-          type: "Visual",
-          title: "Hero Product Still",
-          description: "Soft directional lighting, tactile detail, and restrained composition to elevate perceived quality.",
-          actions: ["Make warmer", "Add logo", "Export social"],
-        },
-        {
-          type: "Signage",
-          title: "Quiet Luxury Offer Card",
-          description: "Minimal promotional language with refined typography so the value feels curated, not discounted.",
-          actions: ["Shorten copy", "Resize for frame"],
-        },
-        {
-          type: "Loop",
-          title: "Ambient Product Motion",
-          description: "A seamless visual loop for digital display with elegant movement and subtle product reveals.",
-          actions: ["Add CTA", "Export MP4"],
-        },
-      ],
-    },
-  ],
-};
-
+// ── DOM refs ─────────────────────────────────────────────────────────────────
 const messageStream = document.getElementById("messageStream");
 const promptInput = document.getElementById("promptInput");
 const generateButton = document.getElementById("generateButton");
@@ -124,7 +59,17 @@ const memoryList = document.getElementById("memoryList");
 const pathwayCard = document.getElementById("pathwayCard");
 const messageTemplate = document.getElementById("messageTemplate");
 const outputCardTemplate = document.getElementById("outputCardTemplate");
+const mcpCardTemplate = document.getElementById("mcpCardTemplate");
 
+// KG modal
+const kgPanel = document.getElementById("kgPanel");
+const kgTripleCount = document.getElementById("kgTripleCount");
+const kgViewButton = document.getElementById("kgViewButton");
+const kgModalOverlay = document.getElementById("kgModalOverlay");
+const kgModalClose = document.getElementById("kgModalClose");
+const kgFrame = document.getElementById("kgFrame");
+
+// ── Init ─────────────────────────────────────────────────────────────────────
 function initializeApp() {
   bindModeButtons();
   generateButton.addEventListener("click", handleGenerate);
@@ -133,7 +78,16 @@ function initializeApp() {
       handleGenerate();
     }
   });
+
+  // KG modal events
+  kgViewButton.addEventListener("click", openKgModal);
+  kgModalClose.addEventListener("click", closeKgModal);
+  kgModalOverlay.addEventListener("click", (e) => {
+    if (e.target === kgModalOverlay) closeKgModal();
+  });
+
   loadMode("home");
+  renderWelcomeMessage();
 }
 
 function bindModeButtons() {
@@ -149,17 +103,15 @@ function bindModeButtons() {
 function loadMode(mode) {
   appState.mode = mode;
   const content = modeContent[mode];
-  const conversation = starterConversation[mode];
 
   modeSummary.textContent = content.summary;
   promptInput.value = content.prompts[0];
   renderMemory(content.memory);
   renderPathway(content.pathway);
   renderQuickPrompts(content.prompts);
-  appState.messages = [...conversation];
-  renderMessages();
 }
 
+// ── Sidebar renders ──────────────────────────────────────────────────────────
 function renderMemory(items) {
   memoryList.innerHTML = "";
   items.forEach((item) => {
@@ -191,114 +143,290 @@ function renderQuickPrompts(prompts) {
   });
 }
 
-function renderMessages() {
+// ── Welcome message ──────────────────────────────────────────────────────────
+function renderWelcomeMessage() {
   messageStream.innerHTML = "";
-  appState.messages.forEach((message) => {
-    const fragment = messageTemplate.content.cloneNode(true);
-    const article = fragment.querySelector(".message");
-    const role = fragment.querySelector(".message-role");
-    const tag = fragment.querySelector(".message-tag");
-    const text = fragment.querySelector(".message-text");
-    const outputGrid = fragment.querySelector(".output-grid");
+  const fragment = messageTemplate.content.cloneNode(true);
+  fragment.querySelector(".message").classList.add("assistant");
+  fragment.querySelector(".message-role").textContent = "AtelierAI";
+  fragment.querySelector(".message-tag").textContent = "Welcome";
+  fragment.querySelector(".message-text").textContent =
+    "Hello! I'm AtelierAI — your creative AI co-pilot. I can generate images, stories, and posters for your home or business. " +
+    "I also have an MCP Agent mode: ask me factual questions like \"Who is Nikola Tesla?\" or \"Calculate 256 * 12\" and I'll use tools to answer step-by-step. " +
+    "Type a prompt below or pick one of the quick starters!";
+  messageStream.appendChild(fragment);
+}
 
-    article.classList.add(message.role);
-    role.textContent = message.role === "assistant" ? "Vizzy" : "You";
-    tag.textContent = message.tag || "";
-    text.textContent = message.text;
+// ── Message stream ───────────────────────────────────────────────────────────
+function appendMessage(message) {
+  const fragment = messageTemplate.content.cloneNode(true);
+  const article = fragment.querySelector(".message");
+  article.classList.add(message.role);
+  fragment.querySelector(".message-role").textContent = message.role === "assistant" ? "AtelierAI" : "You";
+  fragment.querySelector(".message-tag").textContent = message.tag || "";
+  fragment.querySelector(".message-text").textContent = message.text;
 
-    if (message.outputs) {
-      message.outputs.forEach((output) => {
-        outputGrid.appendChild(createOutputCard(output));
-      });
-    }
+  const outputGrid = fragment.querySelector(".output-grid");
+  if (message.assets && message.assets.length) {
+    message.assets.forEach((asset) => {
+      outputGrid.appendChild(createOutputCard(asset));
+    });
+  }
 
-    messageStream.appendChild(fragment);
-  });
-
+  messageStream.appendChild(fragment);
   messageStream.lastElementChild?.scrollIntoView({ behavior: "smooth", block: "end" });
 }
 
-function createOutputCard(output) {
-  const fragment = outputCardTemplate.content.cloneNode(true);
-  fragment.querySelector(".output-type").textContent = output.type;
-  fragment.querySelector(".output-title").textContent = output.title;
-  fragment.querySelector(".output-description").textContent = output.description;
+// ── Output cards ─────────────────────────────────────────────────────────────
+function createOutputCard(asset) {
+  const isMcp = asset.type === "MCP Agent" || asset.type === "Final Answer";
 
+  // Choose template
+  const template = (isMcp && mcpCardTemplate) ? mcpCardTemplate : outputCardTemplate;
+  const fragment = template.content.cloneNode(true);
+
+  // Type badge
+  const typeEl = fragment.querySelector(".output-type");
+  if (typeEl) typeEl.textContent = asset.type;
+
+  // Title
+  const titleEl = fragment.querySelector(".output-title");
+  if (titleEl) titleEl.textContent = asset.title || "";
+
+  // Description
+  const descEl = fragment.querySelector(".output-description");
+  if (descEl) descEl.textContent = asset.description || "";
+
+  // Image preview
+  if (asset.preview_url) {
+    const preview = fragment.querySelector(".output-preview");
+    if (preview) {
+      const img = document.createElement("img");
+      img.src = asset.preview_url;
+      img.alt = asset.title || "Generated image";
+      img.style.cssText = "width:100%;height:100%;object-fit:cover;border-radius:inherit;position:absolute;top:0;left:0;";
+      preview.style.position = "relative";
+      preview.appendChild(img);
+      img.addEventListener("click", () => openLightbox(asset.preview_url));
+    }
+  }
+
+  // Text content (for MCP steps, Copy, Story, etc.)
+  if (asset.text_content) {
+    // MCP cards use .mcp-steps, others use .output-text-content
+    const stepsEl = fragment.querySelector(".mcp-steps");
+    const textEl = fragment.querySelector(".output-text-content");
+
+    if (isMcp && stepsEl) {
+      renderMcpSteps(stepsEl, asset);
+    } else if (textEl) {
+      textEl.textContent = asset.text_content;
+      textEl.style.display = "block";
+    }
+  }
+
+  // Action buttons
   const actionsContainer = fragment.querySelector(".output-actions");
-  output.actions.forEach((actionLabel) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "mini-button";
-    button.textContent = actionLabel;
-    actionsContainer.appendChild(button);
-  });
+  if (actionsContainer && asset.actions) {
+    asset.actions.forEach((action) => {
+      const label = typeof action === "string" ? action : action.label;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "mini-button";
+      button.textContent = label;
+
+      // Handle prompt_suffix actions
+      if (action.prompt_suffix) {
+        button.addEventListener("click", () => {
+          promptInput.value = promptInput.value.trim() + action.prompt_suffix;
+          promptInput.focus();
+        });
+      }
+      // Handle download action
+      if (action.action === "download" && asset.preview_url) {
+        button.addEventListener("click", () => {
+          const a = document.createElement("a");
+          a.href = asset.preview_url;
+          a.download = asset.filename || "atelierai-image";
+          a.click();
+        });
+      }
+      actionsContainer.appendChild(button);
+    });
+  }
 
   return fragment;
 }
 
-function handleGenerate() {
+// Render MCP reasoning steps nicely
+function renderMcpSteps(container, asset) {
+  if (!asset.text_content) return;
+
+  const lines = asset.text_content.split("\n").filter(Boolean);
+  lines.forEach((line) => {
+    const div = document.createElement("div");
+    div.className = "mcp-step-line";
+
+    if (line.startsWith("🔧")) {
+      div.className += " mcp-tool-call";
+    } else if (line.startsWith("📄")) {
+      div.className += " mcp-tool-result";
+    }
+
+    div.textContent = line;
+    container.appendChild(div);
+  });
+
+  // Also show full text for Final Answer type
+  if (asset.type === "Final Answer") {
+    const pre = document.createElement("pre");
+    pre.className = "mcp-final-answer";
+    pre.textContent = asset.text_content;
+    container.appendChild(pre);
+  }
+}
+
+// ── Simple lightbox ──────────────────────────────────────────────────────────
+function openLightbox(url) {
+  const overlay = document.createElement("div");
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,.85);
+    display:flex;align-items:center;justify-content:center;
+    z-index:9999;cursor:zoom-out;
+  `;
+  const img = document.createElement("img");
+  img.src = url;
+  img.style.cssText = "max-width:90vw;max-height:90vh;border-radius:12px;box-shadow:0 0 60px rgba(0,0,0,.6);";
+  overlay.appendChild(img);
+  overlay.addEventListener("click", () => document.body.removeChild(overlay));
+  document.body.appendChild(overlay);
+}
+
+// ── KG Modal ─────────────────────────────────────────────────────────────────
+async function openKgModal() {
+  if (!appState.conversationId) return;
+  kgModalOverlay.style.display = "flex";
+  kgFrame.srcdoc = "<body style='background:#0f0f1a;display:flex;align-items:center;justify-content:center;height:100vh;'><p style='color:#a78bfa;font-family:sans-serif;'>Loading graph...</p></body>";
+
+  try {
+    const resp = await fetch(`/api/knowledge-graph/${appState.conversationId}/render`);
+    const data = await resp.json();
+    kgFrame.srcdoc = data.html || "";
+  } catch {
+    kgFrame.srcdoc = "<body style='background:#0f0f1a;color:#f87171;font-family:sans-serif;padding:2rem;'>Failed to load graph.</body>";
+  }
+}
+
+function closeKgModal() {
+  kgModalOverlay.style.display = "none";
+  kgFrame.srcdoc = "";
+}
+
+// Update KG panel after each response
+async function updateKgPanel() {
+  if (!appState.conversationId) return;
+  try {
+    const resp = await fetch(`/api/knowledge-graph/${appState.conversationId}`);
+    const data = await resp.json();
+    if (data.triple_count > 0) {
+      kgPanel.style.display = "";
+      kgTripleCount.textContent = `${data.triple_count} triples`;
+    }
+  } catch {
+    // silent
+  }
+}
+
+// ── Loading indicator ─────────────────────────────────────────────────────────
+function showTypingIndicator() {
+  const div = document.createElement("div");
+  div.id = "typingIndicator";
+  div.className = "message assistant";
+  div.innerHTML = `
+    <div class="message-header">
+      <span class="message-role">AtelierAI</span>
+      <span class="message-tag">Thinking…</span>
+    </div>
+    <p class="message-text" style="display:flex;gap:.3rem;align-items:center;">
+      <span class="dot-bounce" style="animation-delay:0s">●</span>
+      <span class="dot-bounce" style="animation-delay:.15s">●</span>
+      <span class="dot-bounce" style="animation-delay:.3s">●</span>
+    </p>`;
+  messageStream.appendChild(div);
+  div.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+function hideTypingIndicator() {
+  const el = document.getElementById("typingIndicator");
+  if (el) el.remove();
+}
+
+// ── Generate handler ─────────────────────────────────────────────────────────
+async function handleGenerate() {
   const prompt = promptInput.value.trim();
   if (!prompt) {
     promptInput.focus();
     return;
   }
 
-  appState.messages.push({
+  // Disable button during request
+  generateButton.disabled = true;
+  generateButton.textContent = "Generating…";
+
+  // Show user message immediately
+  appendMessage({
     role: "user",
     tag: appState.mode === "home" ? "Prompt" : "Brief",
     text: prompt,
   });
+  promptInput.value = "";
+  showTypingIndicator();
 
-  appState.messages.push(buildAssistantResponse(prompt, appState.mode));
-  renderMessages();
-}
+  try {
+    const payload = {
+      prompt,
+      mode: appState.mode,
+      conversation_id: appState.conversationId,
+      attachments: [],
+    };
 
-function buildAssistantResponse(prompt, mode) {
-  const lowerPrompt = prompt.toLowerCase();
-  const isStory = lowerPrompt.includes("story") || lowerPrompt.includes("kids");
-  const isPoster = lowerPrompt.includes("poster") || lowerPrompt.includes("signage");
-  const isVideo = lowerPrompt.includes("video") || lowerPrompt.includes("loop");
-  const primaryType = isVideo ? "Loop" : isPoster ? "Poster" : isStory ? "Story" : "Artwork";
+    const resp = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-  const outputs = [
-    {
-      type: primaryType,
-      title: mode === "home" ? "Primary Concept" : "Primary Campaign Asset",
-      description:
-        mode === "home"
-          ? "A polished first direction based on your words, mood, and likely visual intent."
-          : "A lead creative treatment aligned to your brand intent, offer, and customer perception goals.",
-      actions: ["Refine", "Generate variants", "Approve"],
-    },
-    {
-      type: "Variation Set",
-      title: mode === "home" ? "Alternate Interpretations" : "Channel Adaptations",
-      description:
-        mode === "home"
-          ? "Additional directions that shift style, symbolism, and emotional emphasis."
-          : "Ready-to-adapt versions for in-store display, social sharing, and customer messaging.",
-      actions: ["Compare", "Mix styles"],
-    },
-    {
-      type: mode === "home" ? "Memory" : "Deploy",
-      title: mode === "home" ? "Taste Memory Update" : "Publishing Actions",
-      description:
-        mode === "home"
-          ? "Learns from this request to personalize future visuals and suggestions."
-          : "Queues this concept for frame display, email export, or campaign reuse across surfaces.",
-      actions: mode === "home" ? ["Save preference"] : ["Frame", "Email", "Social"],
-    },
-  ];
+    if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
+    const data = await resp.json();
 
-  return {
-    role: "assistant",
-    tag: mode === "home" ? "Generated response" : "Asset response",
-    text:
-      mode === "home"
-        ? `I interpreted "${prompt}" as a ${primaryType.toLowerCase()} request and prepared a main concept, alternates, and a memory update so future generations feel more like you.`
-        : `I interpreted "${prompt}" as a brand-facing ${primaryType.toLowerCase()} request and prepared a lead asset, channel-ready adaptations, and deploy options for quick reuse.`,
-    outputs,
-  };
+    // Update state
+    appState.conversationId = data.conversation?.id ?? appState.conversationId;
+
+    hideTypingIndicator();
+
+    // Show assistant reply
+    const assistantMsg = data.assistant_message;
+    appendMessage({
+      role: "assistant",
+      tag: assistantMsg.tag || "Response",
+      text: assistantMsg.text,
+      assets: assistantMsg.assets || [],
+    });
+
+    // Update KG panel in background
+    updateKgPanel();
+
+  } catch (err) {
+    hideTypingIndicator();
+    appendMessage({
+      role: "assistant",
+      tag: "Error",
+      text: `Something went wrong: ${err.message}. Make sure the server is running.`,
+    });
+  } finally {
+    generateButton.disabled = false;
+    generateButton.textContent = "Generate";
+  }
 }
 
 initializeApp();

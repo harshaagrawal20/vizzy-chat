@@ -401,6 +401,7 @@ textarea {
 }
 
 @media (max-width: 720px) {
+
   .sidebar,
   .workspace {
     padding: 18px;

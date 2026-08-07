@@ -6,6 +6,7 @@ import html
 import io
 import json
 import random
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -194,7 +195,110 @@ def _model_specific_parameters(variant: int) -> dict:
     }
 
 
+GROQ_SVG_URL   = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_SVG_MODEL = "llama-3.3-70b-versatile"  # higher TPM limit than 8b-instant
+
+_SVG_BATCH_SYSTEM = """You are a world-class SVG visual artist creating cinematic, gallery-quality artwork. Generate 3 DISTINCT, breathtaking SVG illustrations of the same scene.
+
+STRICT OUTPUT FORMAT — output ONLY this, zero other text:
+===SVG1===
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+...rich svg content...
+</svg>
+===SVG2===
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+...different mood and palette...
+</svg>
+===SVG3===
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+...third distinct interpretation...
+</svg>
+
+MANDATORY ARTISTIC REQUIREMENTS for EACH SVG:
+1. ATMOSPHERE: Use <defs> with at least 3 layered radialGradient or linearGradient fills for sky, ground, and accent lighting
+2. DEPTH: Add <filter> with feGaussianBlur for background blur (stdDeviation 4-8), creating depth-of-field
+3. LAYERS: Build minimum 4 depth layers — distant background, mid-background, midground, foreground
+4. DETAIL: Include at minimum 40 SVG elements (rects, circles, paths, ellipses, polygons)
+5. ORGANIC SHAPES: Use complex <path d="M...C...S...Q..."> bezier curves for natural forms (clouds, terrain, foliage, waves)
+6. LIGHTING: Add atmospheric glow using radialGradient with high opacity center fading to transparent
+7. TEXTURE: Layer semi-transparent overlapping shapes (opacity 0.1-0.4) for texture and richness
+8. COLOR HARMONY: Each SVG uses a distinct cinematic color palette (e.g. golden hour, moonlit blue, mystical purple)
+9. SILHOUETTES: Use dark foreground silhouette shapes against lighter background for dramatic contrast
+10. NO BASIC SHAPES ALONE: Never just place a plain circle for sun or rectangle for sky — always use gradients and multiple layered elements
+
+Each SVG must look like a premium, painterly illustration — NOT clip art. Think: Studio Ghibli backgrounds, atmospheric landscape paintings, cinematic concept art.
+No markdown fences. No explanation. Only the SVG blocks."""
+
+# Cache: (prompt, mode) → list of SVG strings from the batch call
+_svg_batch_cache: dict[tuple[str, str], list[str]] = {}
+
+
+def _fetch_ai_svg_batch(prompt: str, mode: str, count: int, memory_keywords: list[str]) -> list[str]:
+    """Single Groq call → list of `count` SVG strings."""
+    from app.settings import settings as _s
+    if not _s.groq_api_key:
+        raise ValueError("No GROQ_API_KEY")
+
+    style_hint = ", ".join(memory_keywords[:3]) if memory_keywords else "cinematic, vibrant"
+    user_msg = (
+        f"Create {count} stunning, gallery-quality SVG artworks of this scene: {prompt}. "
+        f"Style influences: {style_hint}. "
+        f"Each must be a richly layered, atmospheric, cinematic illustration with gradients, blur filters, "
+        f"bezier path terrain, organic shapes, and dramatic lighting. "
+        f"Use the ===SVG1=== / ===SVG2=== / ===SVG3=== format exactly. "
+        f"Make each one visually distinct with a different color mood."
+    )
+
+    payload = json.dumps({
+        "model":    GROQ_SVG_MODEL,
+        "messages": [
+            {"role": "system", "content": _SVG_BATCH_SYSTEM},
+            {"role": "user",   "content": user_msg},
+        ],
+        "temperature": 0.9,
+        "max_tokens":  8000,
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        GROQ_SVG_URL, data=payload,
+        headers={
+            "Content-Type":  "application/json",
+            "Authorization": f"Bearer {_s.groq_api_key}",
+            "User-Agent":    "python-httpx/0.24.0",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=60) as r:
+        resp = json.loads(r.read().decode("utf-8"))
+
+    raw = resp["choices"][0]["message"]["content"]
+
+    results: list[str] = []
+    for i in range(1, count + 1):
+        marker      = f"===SVG{i}==="
+        next_marker = f"===SVG{i + 1}===" if i < count else None
+        start = raw.find(marker)
+        if start == -1:
+            continue
+        start += len(marker)
+        end = raw.find(next_marker, start) if next_marker else len(raw)
+        chunk = raw[start:end].strip()
+        svg_s = chunk.find("<svg")
+        svg_e = chunk.rfind("</svg>")
+        if svg_s != -1 and svg_e != -1:
+            svg_str = chunk[svg_s: svg_e + 6]
+            # Ensure xmlns is present — required for <img> tag rendering
+            if 'xmlns=' not in svg_str:
+                svg_str = svg_str.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"', 1)
+            results.append(svg_str)
+
+    if not results:
+        raise ValueError("No ===SVGn=== markers found in response")
+    return results
+
+
 def _svg_markup(prompt: str, mode: str, variant: int, memory_keywords: list[str]) -> str:
+    """Abstract fallback SVG used when Groq is unavailable."""
     seed = _seed_for(prompt, variant)
     randomizer = random.Random(seed)
     colors = PALETTES[seed % len(PALETTES)]
@@ -240,7 +344,7 @@ def _svg_markup(prompt: str, mode: str, variant: int, memory_keywords: list[str]
         f'  <g filter="url(#blur-{seed})">{"".join(circles)}</g>\n'
         f'  <g>{"".join(lines)}</g>\n'
         f'  <rect x="56" y="770" width="520" height="140" rx="28" fill="{colors[3]}" opacity="0.82" />\n'
-        f'  <text x="92" y="824" fill="{colors[0]}" font-size="26" font-family="Arial, sans-serif" letter-spacing="4">VIZZY CHAT</text>\n'
+        f'  <text x="92" y="824" fill="{colors[0]}" font-size="26" font-family="Arial, sans-serif" letter-spacing="4">ATELIERAI</text>\n'
         f'  <text x="92" y="868" fill="{colors[1]}" font-size="30" font-weight="700" font-family="Arial, sans-serif">{abstract_label}</text>\n'
         f'  <text x="92" y="905" fill="{colors[1]}" font-size="18" font-family="Arial, sans-serif">Style cues: {memory_label}</text>\n'
         f'</svg>\n'
@@ -250,8 +354,25 @@ def _svg_markup(prompt: str, mode: str, variant: int, memory_keywords: list[str]
 def _write_svg(prompt: str, mode: str, index: int, memory_keywords: list[str]) -> tuple[str, str]:
     filename = f"{mode}-{_slug(prompt)}-{index + 1}.svg"
     filepath = GENERATED_DIR / filename
+
+    # On index 0: fire ONE batch Groq call to generate all 3 variants
+    cache_key = (prompt, mode)
+    if index == 0 and cache_key not in _svg_batch_cache:
+        try:
+            _svg_batch_cache[cache_key] = _fetch_ai_svg_batch(prompt, mode, 3, memory_keywords)
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError,
+                KeyError, IndexError, ValueError, OSError):
+            _svg_batch_cache[cache_key] = []  # mark failed; use fallback
+
+    cached = _svg_batch_cache.get(cache_key, [])
+    if index < len(cached):
+        filepath.write_text(cached[index], encoding="utf-8")
+        return filename, "groq-svg"
+
+    # Fallback: abstract generative SVG
     filepath.write_text(_svg_markup(prompt, mode, index, memory_keywords), encoding="utf-8")
     return filename, "svg"
+
 
 
 # ── HTTP helpers ──────────────────────────────────────────────────────────────
@@ -286,18 +407,151 @@ def _save_png_bytes(raw: bytes, prompt: str, mode: str, index: int, source: str)
     return filename, source
 
 
-# ── Text-to-image backends ────────────────────────────────────────────────────
+# ── fal.ai backend (FLUX.1-schnell via fal.run — primary recommended backend) ─
+
+FAL_FLUX_URL     = "https://fal.run/fal-ai/flux/schnell"
+FAL_IMG2IMG_URL  = "https://fal.run/fal-ai/flux/dev/image-to-image"
+
+_IMAGE_SIZE_MAP = {
+    256:  "square",
+    512:  "square_hd",
+    768:  "square_hd",
+    1024: "square_hd",
+}
+
+
+def _fal_image_size() -> str:
+    w = settings.image_width
+    if w <= 256:
+        return "square"
+    if w <= 512:
+        return "square_hd"
+    return "landscape_4_3"
+
+
+def _generate_fal_txt2img(
+    composed_prompt: str, prompt: str, mode: str, index: int,
+) -> tuple[str, str]:
+    """Generate an image via fal.ai FLUX.1-schnell REST API."""
+    if not settings.fal_key:
+        raise ValueError("FAL_KEY is not configured")
+
+    payload = json.dumps({
+        "prompt":                composed_prompt,
+        "num_inference_steps":   min(settings.image_steps, 4),   # schnell max 4
+        "guidance_scale":        3.5,
+        "image_size":            _fal_image_size(),
+        "num_images":            1,
+        "enable_safety_checker": False,
+        "seed":                  _seed_for(prompt, index),
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        FAL_FLUX_URL,
+        data=payload,
+        headers={
+            "Authorization": f"Key {settings.fal_key}",
+            "Content-Type":  "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=120) as r:
+        resp = json.loads(r.read().decode("utf-8"))
+
+    img_url = resp["images"][0]["url"]
+    with urllib.request.urlopen(img_url, timeout=60) as img_r:
+        raw = img_r.read()
+    return _save_png_bytes(raw, prompt, mode, index, "fal-ai")
+
+
+def _generate_fal_img2img(
+    composed_prompt: str, prompt: str, mode: str, index: int,
+    attachments: list[dict],
+) -> tuple[str, str]:
+    """Image-to-image via fal.ai flux/dev endpoint."""
+    if not settings.fal_key:
+        raise ValueError("FAL_KEY is not configured")
+    image_b64 = _load_attachment_b64(attachments[0]) if attachments else None
+    if not image_b64:
+        raise ValueError("Could not load attachment for fal img2img")
+
+    payload = json.dumps({
+        "prompt":                composed_prompt,
+        "image_url":             f"data:image/png;base64,{image_b64}",
+        "strength":              0.75,
+        "num_inference_steps":   20,
+        "guidance_scale":        3.5,
+        "image_size":            _fal_image_size(),
+        "num_images":            1,
+        "enable_safety_checker": False,
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        FAL_IMG2IMG_URL,
+        data=payload,
+        headers={
+            "Authorization": f"Key {settings.fal_key}",
+            "Content-Type":  "application/json",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=120) as r:
+        resp = json.loads(r.read().decode("utf-8"))
+
+    img_url = resp["images"][0]["url"]
+    with urllib.request.urlopen(img_url, timeout=60) as img_r:
+        raw = img_r.read()
+    return _save_png_bytes(raw, prompt, mode, index, "fal-ai-img2img")
+
+
+# ── Text-to-image backends (HuggingFace fallback chain) ───────────────────────
 
 def _generate_huggingface_txt2img(
     composed_prompt: str, prompt: str, mode: str, index: int,
 ) -> tuple[str, str]:
     if not settings.hf_token:
         raise ValueError("HF_TOKEN is not configured")
-    payload = {"inputs": composed_prompt, "parameters": _model_specific_parameters(index)}
     headers = {"Authorization": f"Bearer {settings.hf_token}"}
     model_path = urllib.parse.quote(settings.hf_model, safe="/")
-    url = f"https://router.huggingface.co/hf-inference/models/{model_path}"
-    raw = _request_bytes(url, payload=payload, headers=headers)
+    params = _model_specific_parameters(index)
+
+    # ── Try fal-ai provider first (supports FLUX.1-schnell, active 2025+) ──
+    fal_payload = {
+        "prompt": composed_prompt,
+        "num_inference_steps": params.get("num_inference_steps", 4),
+        "guidance_scale": params.get("guidance_scale", 3.5),
+        "width": params.get("width", 512),
+        "height": params.get("height", 512),
+    }
+    fal_url = "https://router.huggingface.co/fal-ai/flux/schnell"
+    try:
+        raw = _request_bytes(fal_url, payload=fal_payload, headers=headers)
+        # fal-ai returns JSON with image_url, not raw bytes
+        if raw[:1] in (b'{', b'['):
+            resp_json = json.loads(raw)
+            img_url = None
+            if isinstance(resp_json, dict):
+                img_url = (resp_json.get("images") or [{}])[0].get("url") or resp_json.get("image")
+            if img_url:
+                with urllib.request.urlopen(img_url, timeout=60) as img_resp:
+                    raw = img_resp.read()
+        if len(raw) > 1000:  # plausible image
+            return _save_png_bytes(raw, prompt, mode, index, "huggingface-fal")
+    except (urllib.error.HTTPError, urllib.error.URLError, json.JSONDecodeError, KeyError, IndexError, TimeoutError):
+        pass
+
+    # ── Fallback: hf-inference provider (older models / regions) ───────────
+    hf_payload = {"inputs": composed_prompt, "parameters": params}
+    hf_url = f"https://router.huggingface.co/hf-inference/models/{model_path}"
+    try:
+        raw = _request_bytes(hf_url, payload=hf_payload, headers=headers)
+        return _save_png_bytes(raw, prompt, mode, index, "huggingface")
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError):
+        pass
+
+    # ── Fallback 2: direct inference API ────────────────────────────────────
+    direct_url = f"https://api-inference.huggingface.co/models/{model_path}"
+    raw = _request_bytes(direct_url, payload=hf_payload, headers=headers)
     return _save_png_bytes(raw, prompt, mode, index, "huggingface")
 
 
@@ -452,7 +706,7 @@ def _generate_video_stub(
     # Overwrite with a motion-label variant
     filepath = GENERATED_DIR / filename
     svg = filepath.read_text(encoding="utf-8")
-    svg = svg.replace("VIZZY CHAT", "VIZZY MOTION")
+    svg = svg.replace("ATELIERAI", "ATELIER MOTION")
     svg = svg.replace("Emotional composition" if mode == "home" else "Brand composition",
                       "Motion Concept — Video backend not yet configured")
     filepath.write_text(svg, encoding="utf-8")
@@ -475,23 +729,25 @@ def _render_file(
 
     # ── VIDEO ─────────────────────────────────────────────────────────────────
     if task_type == TaskType.VIDEO:
-        # Future: check SUPPORTED_VIDEO_BACKENDS and dispatch accordingly
         return _generate_video_stub(prompt, mode, index, memory_keywords)
 
     # ── IMAGE-TO-IMAGE ────────────────────────────────────────────────────────
     if task_type == TaskType.IMAGE_TO_IMAGE and attachments:
         try:
+            if settings.fal_key:                          # fal.ai first
+                return _generate_fal_img2img(composed, prompt, mode, index, attachments)
             if backend == "huggingface":
                 return _generate_huggingface_img2img(composed, prompt, mode, index, attachments)
             if backend == "a1111":
                 return _generate_a1111_img2img(composed, prompt, mode, index, attachments)
-            # ComfyUI img2img needs a custom workflow; fall through to txt2img for now
         except (KeyError, IndexError, ValueError, urllib.error.URLError,
                 urllib.error.HTTPError, TimeoutError, json.JSONDecodeError):
             pass
         # Fallback: txt2img with reference hint in prompt
         composed_fallback = composed + ", incorporate the style and composition of the reference image"
         try:
+            if settings.fal_key:
+                return _generate_fal_txt2img(composed_fallback, prompt, mode, index)
             if backend == "huggingface":
                 return _generate_huggingface_txt2img(composed_fallback, prompt, mode, index)
             if backend == "a1111":
@@ -503,6 +759,8 @@ def _render_file(
 
     # ── TEXT-TO-IMAGE, POSTER, STORY ─────────────────────────────────────────
     try:
+        if settings.fal_key:                              # fal.ai first
+            return _generate_fal_txt2img(composed, prompt, mode, index)
         if backend == "huggingface":
             return _generate_huggingface_txt2img(composed, prompt, mode, index)
         if backend == "a1111":
@@ -532,11 +790,17 @@ def generate_assets(
 
     task_type = detect_task_type(prompt, attachments)
     assets: list[dict] = []
+    last_backend: str = ""
 
     for index in range(count):
+        # Add delay between consecutive Groq AI-SVG calls to avoid CF rate-limit
+        if index > 0 and last_backend == "groq-svg":
+            time.sleep(1.2)
+
         filename, backend = _render_file(
             prompt, mode, index, memory_keywords, attachments, task_type, brand_context
         )
+        last_backend = backend
         asset_type = _asset_type(prompt, mode, index)
         assets.append({
             "type": asset_type,

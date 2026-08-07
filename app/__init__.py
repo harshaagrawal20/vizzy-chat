@@ -1,1 +1,1 @@
-"""Vizzy Chat application package."""
+"""AtelierAI application package."""

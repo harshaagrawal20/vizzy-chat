@@ -27,6 +27,8 @@ from app.schemas import (
 )
 from app.services.chat import build_assistant_reply, handle_export, suggest_title
 from app.services.generator import GENERATED_DIR, ensure_generated_dir
+from app.services.mcp_tools import list_tools as mcp_list_tools
+from app.services.knowledge_graph import render_graph_html
 from app.settings import settings
 
 
@@ -38,7 +40,7 @@ ensure_generated_dir()
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-app = FastAPI(title="Vizzy Chat", version="1.2.0")
+app = FastAPI(title="AtelierAI", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -64,9 +66,43 @@ def health_check() -> dict:
         "image_backend": settings.image_backend,
         "hf_model": settings.hf_model,
         "hf_token_configured": bool(settings.hf_token),
+        "groq_configured": bool(settings.groq_api_key),
+        "fal_key_configured": bool(settings.fal_key),
         "comfyui_base_url": settings.comfyui_base_url,
         "a1111_base_url": settings.a1111_base_url,
     }
+
+
+# ── Topic 23: MCP Tool endpoints ──────────────────────────────────────────────
+
+@app.get("/api/mcp/tools")
+def api_mcp_tools() -> list[dict]:
+    """Return the list of available MCP tools with name and description."""
+    return mcp_list_tools()
+
+
+# ── Topic 25: Knowledge Graph endpoints ──────────────────────────────────────
+
+@app.get("/api/knowledge-graph/{conversation_id}")
+def api_get_knowledge_graph(conversation_id: int) -> dict:
+    """Return all extracted knowledge triples for a conversation."""
+    triples = crud.get_knowledge_triples(conversation_id)
+    return {
+        "conversation_id": conversation_id,
+        "triple_count": len(triples),
+        "triples": triples,
+    }
+
+
+@app.get("/api/knowledge-graph/{conversation_id}/render")
+def api_render_knowledge_graph(conversation_id: int) -> dict:
+    """Return a pyvis-rendered interactive HTML graph for embedding."""
+    triples = crud.get_knowledge_triples(conversation_id)
+    html_content = render_graph_html(
+        [{"subject": t["subject"], "predicate": t["predicate"], "object": t["object"]} for t in triples],
+        conversation_id=conversation_id,
+    )
+    return {"html": html_content, "triple_count": len(triples)}
 
 
 @app.get("/api/memory/{mode}", response_model=MemorySnapshot)

@@ -20,13 +20,13 @@ const modeContent = {
   home: {
     summary: "Personal artmaking, storytelling, memory visualization, and iterative co-creation in one place.",
     memory: [
-      { label: "Aesthetic pull",    value: "Dreamlike, intimate, painterly, emotionally symbolic" },
+      { label: "Aesthetic pull", value: "Dreamlike, intimate, painterly, emotionally symbolic" },
       { label: "Preferred outputs", value: "Artwork sets, story scenes, quote posters, reflective visuals" },
-      { label: "Typical intent",    value: "Translate feelings, memories, and goals into tangible visual experiences" },
+      { label: "Typical intent", value: "Translate feelings, memories, and goals into tangible visual experiences" },
     ],
     context: [
       { label: "Creative pathway", value: "Painting, photo reimagination, dream visualization, symbolic art" },
-      { label: "Narrative flow",   value: "Story sequences, storybooks, scene-by-scene visualization" },
+      { label: "Narrative flow", value: "Story sequences, storybooks, scene-by-scene visualization" },
       { label: "Reflection layer", value: "Quote posters, journaling from artwork, inner emotional landscapes" },
     ],
     capabilities: ["Multi-image generation", "Style transfer", "Story visuals", "Taste memory", "Reference uploads", "Img2Img"],
@@ -53,14 +53,14 @@ const modeContent = {
   business: {
     summary: "Creative and marketing co-pilot for brand visuals, signage, campaigns, social-ready assets, and ambient experiences.",
     memory: [
-      { label: "Brand awareness",  value: "Business type, tone, seasonality, offers, and reusable creative needs" },
+      { label: "Brand awareness", value: "Business type, tone, seasonality, offers, and reusable creative needs" },
       { label: "Preferred outputs", value: "Product visuals, posters, signage, campaigns, loops, branded artwork" },
-      { label: "Typical intent",   value: "Drive attention and conversion without making the brand feel cheap" },
+      { label: "Typical intent", value: "Drive attention and conversion without making the brand feel cheap" },
     ],
     context: [
       { label: "Business context", value: "Brand assets, values, past campaigns, and seasonal goals" },
-      { label: "Asset targets",    value: "Frame, social, signage, email, memento artwork, and in-store visuals" },
-      { label: "Marketing style",  value: "Premium-looking output that still feels accessible and conversion-focused" },
+      { label: "Asset targets", value: "Frame, social, signage, email, memento artwork, and in-store visuals" },
+      { label: "Marketing style", value: "Premium-looking output that still feels accessible and conversion-focused" },
     ],
     capabilities: ["Campaign visuals", "In-store signage", "Product imagery", "Deploy surfaces", "Reference uploads", "Brand kit"],
     surfaces: ["Frame", "Email", "Social", "Print signage"],
@@ -86,30 +86,30 @@ const modeContent = {
 };
 
 // ── DOM References ────────────────────────────────────────────────────────────
-const messageStream     = document.getElementById("messageStream");
-const promptInput       = document.getElementById("promptInput");
-const generateButton    = document.getElementById("generateButton");
-const quickPrompts      = document.getElementById("quickPrompts");
-const modeSummary       = document.getElementById("modeSummary");
-const memoryList        = document.getElementById("memoryList");
-const contextList       = document.getElementById("contextList");
-const coverageList      = document.getElementById("coverageList");
-const capabilityList    = document.getElementById("capabilityList");
-const surfaceList       = document.getElementById("surfaceList");
-const conversationList  = document.getElementById("conversationList");
-const historyCount      = document.getElementById("historyCount");
-const newChatButton     = document.getElementById("newChatButton");
-const uploadButton      = document.getElementById("uploadButton");
-const uploadChip        = document.getElementById("uploadChip");
-const fileInput         = document.getElementById("fileInput");
-const attachmentTray    = document.getElementById("attachmentTray");
-const messageTemplate   = document.getElementById("messageTemplate");
+const messageStream = document.getElementById("messageStream");
+const promptInput = document.getElementById("promptInput");
+const generateButton = document.getElementById("generateButton");
+const quickPrompts = document.getElementById("quickPrompts");
+const modeSummary = document.getElementById("modeSummary");
+const memoryList = document.getElementById("memoryList");
+const contextList = document.getElementById("contextList");
+const coverageList = document.getElementById("coverageList");
+const capabilityList = document.getElementById("capabilityList");
+const surfaceList = document.getElementById("surfaceList");
+const conversationList = document.getElementById("conversationList");
+const historyCount = document.getElementById("historyCount");
+const newChatButton = document.getElementById("newChatButton");
+const uploadButton = document.getElementById("uploadButton");
+const uploadChip = document.getElementById("uploadChip");
+const fileInput = document.getElementById("fileInput");
+const attachmentTray = document.getElementById("attachmentTray");
+const messageTemplate = document.getElementById("messageTemplate");
 const outputCardTemplate = document.getElementById("outputCardTemplate");
-const lightbox          = document.getElementById("lightbox");
-const lightboxImage     = document.getElementById("lightboxImage");
-const lightboxDownload  = document.getElementById("lightboxDownload");
-const lightboxClose     = document.getElementById("lightboxClose");
-const toastContainer    = document.getElementById("toastContainer");
+const lightbox = document.getElementById("lightbox");
+const lightboxImage = document.getElementById("lightboxImage");
+const lightboxDownload = document.getElementById("lightboxDownload");
+const lightboxClose = document.getElementById("lightboxClose");
+const toastContainer = document.getElementById("toastContainer");
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TOAST NOTIFICATION SYSTEM
@@ -158,7 +158,7 @@ lightboxDownload.addEventListener("click", () => {
   if (currentLightboxUrl) {
     const a = document.createElement("a");
     a.href = currentLightboxUrl;
-    a.download = currentLightboxUrl.split("/").pop() || "vizzy-output";
+    a.download = currentLightboxUrl.split("/").pop() || "atelierai-output";
     a.click();
     showToast("Download started", "success");
   }
@@ -177,6 +177,9 @@ document.addEventListener("keydown", (e) => {
 
 function initializeApp() {
   bindModeButtons();
+  bindNavButtons();
+  bindTopbarTools();
+
   generateButton.addEventListener("click", handleGenerate);
   newChatButton.addEventListener("click", () => { resetChat(); showToast("New chat started", "info"); });
   uploadButton.addEventListener("click", () => fileInput.click());
@@ -191,6 +194,264 @@ function initializeApp() {
   void loadBusinessProfile();
   void loadCampaigns();
   renderBrandKitPanel();
+}
+
+// ── Navigation Buttons ────────────────────────────────────────────────────────
+
+function bindNavButtons() {
+  const navItems = {
+    navChat: () => switchView("Creative Workspace"),
+    navTemplates: () => openTemplatesModal(),
+    navProjects: () => openProjectsModal(),
+    navSurfaces: () => openSurfacesModal(),
+    navSettings: () => openSettingsModal(),
+  };
+
+  Object.entries(navItems).forEach(([id, handler]) => {
+    const btn = document.getElementById(id);
+    if (btn) {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
+        btn.classList.add("active");
+        handler();
+      });
+    }
+  });
+}
+
+function bindTopbarTools() {
+  const kgBtn = document.getElementById("kgButton");
+  if (kgBtn) kgBtn.addEventListener("click", openKnowledgeGraphModal);
+
+  const infoBtn = document.getElementById("infoButton");
+  if (infoBtn) infoBtn.addEventListener("click", openInfoModal);
+
+  const searchInp = document.getElementById("searchInput");
+  if (searchInp) {
+    searchInp.addEventListener("input", (e) => {
+      renderConversationList(e.target.value.trim().toLowerCase());
+    });
+  }
+}
+
+function switchView(title) {
+  const titleEl = document.getElementById("currentViewTitle");
+  if (titleEl) titleEl.textContent = title;
+}
+
+// ── Navigation Modals ─────────────────────────────────────────────────────────
+
+function openTemplatesModal() {
+  const homeTemplates = [
+    { title: "🎨 Emotional Memory Painting", prompt: "Paint an abstract artwork representing nostalgia and growth with warm golden hues." },
+    { title: "🖼️ Renaissance Photo Art", prompt: "Transform a classic portrait into a dramatic Renaissance oil painting style." },
+    { title: "📖 Illustrated Story Scene", prompt: "Generate a fantasy story scene with a magical glowing forest and ancient ruins." },
+    { title: "✨ Minimalist Quote Poster", prompt: "Design a serene minimalist poster with a motivational quote about inner strength." },
+  ];
+
+  const bizTemplates = [
+    { title: "🚀 Product Launch Visual", prompt: "Create a sleek, high-end product hero visual for a tech gadget launch." },
+    { title: "🏷️ Premium Sale Banner", prompt: "Design an elegant seasonal sale banner with gold accents and dark glassmorphism." },
+    { title: "🌧️ Seasonal In-Store Signage", prompt: "Design atmospheric in-store display signage for a rainy autumn cafe vibe." },
+    { title: "📱 Social Campaign Set", prompt: "Create a cohesive 3-part Instagram story layout for an artisan coffee brand." },
+  ];
+
+  const templates = state.mode === "home" ? homeTemplates : bizTemplates;
+  const cardsHTML = templates.map((t) => `
+    <div class="template-card" onclick="useTemplate('${t.prompt.replace(/'/g, "\\'")}')">
+      <h4>${t.title}</h4>
+      <p>${t.prompt}</p>
+    </div>
+  `).join("");
+
+  const modal = _createModalLarge(`${state.mode === "home" ? "Home" : "Business"} Prompt Templates`, `
+    <p style="color:var(--ink-secondary);margin-bottom:12px">Select a template below to load it into your prompt workspace:</p>
+    <div class="template-grid">${cardsHTML}</div>
+    <div class="modal-actions"><button type="button" class="mini-button" onclick="closeModal()">Close</button></div>
+  `);
+  document.body.appendChild(modal);
+}
+
+function useTemplate(promptText) {
+  promptInput.value = promptText;
+  promptInput.focus();
+  closeModal();
+  switchView("Creative Workspace");
+  const navChat = document.getElementById("navChat");
+  if (navChat) {
+    document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
+    navChat.classList.add("active");
+  }
+  showToast("Template loaded into prompt workspace ✨", "info");
+}
+
+function openProjectsModal() {
+  const campaigns = state.campaigns.map((c) => `<li><strong>${c.name}</strong> (${c.season || "General"}) — ${c.goal || "No goal specified"}</li>`).join("") || '<li class="muted">No active campaigns yet</li>';
+  const attachments = state.attachments.map((a) => `<li>📎 ${a.name}</li>`).join("") || '<li class="muted">No attachments loaded in active chat</li>';
+
+  const modal = _createModalLarge("Projects & Assets Workspace", `
+    <div style="display:grid;gap:16px">
+      <div>
+        <h4 style="color:var(--ink);margin:0 0 8px">Active Campaigns</h4>
+        <ul class="memory-list">${campaigns}</ul>
+        <button type="button" class="mini-button" style="margin-top:8px" onclick="openNewCampaignDialog()">+ New Campaign</button>
+      </div>
+      <div>
+        <h4 style="color:var(--ink);margin:0 0 8px">Current Chat Attachments</h4>
+        <ul class="memory-list">${attachments}</ul>
+      </div>
+    </div>
+    <div class="modal-actions"><button type="button" class="mini-button" onclick="closeModal()">Close</button></div>
+  `);
+  document.body.appendChild(modal);
+}
+
+function openSurfacesModal() {
+  const modal = _createModalLarge("Deployment Surfaces & Exports", `
+    <p style="color:var(--ink-secondary);line-height:1.6">Export generated assets for your preferred target surface:</p>
+    <div class="template-grid" style="margin:14px 0">
+      <div class="template-card" onclick="triggerSurfaceExport('zip')">
+        <h4>📦 ZIP Bundle</h4>
+        <p>Download all generated vector artwork and copy files in one compressed bundle.</p>
+      </div>
+      <div class="template-card" onclick="triggerSurfaceExport('social')">
+        <h4>📲 Social Media</h4>
+        <p>Export visuals optimized for Instagram, Twitter, and LinkedIn sharing.</p>
+      </div>
+      <div class="template-card" onclick="triggerSurfaceExport('frame')">
+        <h4>🖼️ Frame Display</h4>
+        <p>High-resolution output formatted for digital frames and ambient displays.</p>
+      </div>
+      <div class="template-card" onclick="triggerSurfaceExport('print')">
+        <h4>🖨️ Print & Signage</h4>
+        <p>Clean vector graphics suitable for physical posters and signage.</p>
+      </div>
+    </div>
+    <div class="modal-actions"><button type="button" class="mini-button" onclick="closeModal()">Close</button></div>
+  `);
+  document.body.appendChild(modal);
+}
+
+async function triggerSurfaceExport(surface) {
+  closeModal();
+  if (!state.conversationId) {
+    showToast("Please start or load a conversation first to export assets", "info");
+    return;
+  }
+  showToast(`Preparing ${surface} export...`, "info");
+  try {
+    const res = await fetch("/api/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ surface, asset_filenames: [], conversation_id: state.conversationId })
+    });
+    const data = await res.json();
+    if (data.download_url) {
+      const a = document.createElement("a");
+      a.href = data.download_url;
+      a.download = "";
+      a.click();
+      showToast("Download ready! 📦", "success");
+    } else if (data.download_urls?.length) {
+      data.download_urls.forEach((url) => {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+      showToast(`${data.download_urls.length} files downloaded! 🚀`, "success");
+    } else if (data.stub) {
+      _showExportStubModal(surface, data);
+    }
+  } catch (err) {
+    showToast("Export failed: " + (err.message || "Unknown error"), "error");
+  }
+}
+
+async function openSettingsModal() {
+  try {
+    const res = await fetch("/api/health");
+    const health = await res.json();
+
+    const modal = _createModalLarge("System Health & Configuration Settings", `
+      <p style="color:var(--ink-secondary);margin-bottom:12px">Live configuration and backend model status:</p>
+      <div class="settings-grid">
+        <div class="settings-row"><span>System Status</span><span class="status-badge ok">${health.status.toUpperCase()}</span></div>
+        <div class="settings-row"><span>LLM Orchestrator</span><span class="settings-val">Groq LLaMA 3.3 (70b-versatile)</span></div>
+        <div class="settings-row"><span>Groq API Key</span><span class="status-badge ${health.groq_configured ? 'ok' : 'off'}">${health.groq_configured ? 'CONNECTED' : 'MISSING'}</span></div>
+        <div class="settings-row"><span>fal.ai Key</span><span class="status-badge ${health.fal_key_configured ? 'ok' : 'off'}">${health.fal_key_configured ? 'CONNECTED' : 'NOT SET'}</span></div>
+        <div class="settings-row"><span>HuggingFace Token</span><span class="status-badge ${health.hf_token_configured ? 'ok' : 'off'}">${health.hf_token_configured ? 'CONNECTED' : 'NOT SET'}</span></div>
+        <div class="settings-row"><span>Image Backend</span><span class="settings-val">Groq LLaMA 3 AI Vector Art (SVG)</span></div>
+        <div class="settings-row"><span>Knowledge Graph NLP</span><span class="settings-val">PyVis + NetworkX Pipeline</span></div>
+        <div class="settings-row"><span>Database</span><span class="settings-val">SQLite (Local)</span></div>
+      </div>
+      <div class="modal-actions"><button type="button" class="mini-button" onclick="closeModal()">Close</button></div>
+    `);
+    document.body.appendChild(modal);
+  } catch (err) {
+    showToast("Failed to load settings", "error");
+  }
+}
+
+async function openKnowledgeGraphModal() {
+  const convId = state.conversationId;
+  if (!convId) {
+    showToast("Start a conversation first to build a Knowledge Graph", "info");
+    return;
+  }
+  showToast("Rendering interactive Knowledge Graph...", "info");
+  try {
+    const res = await fetch(`/api/knowledge-graph/${convId}/render`);
+    const data = await res.json();
+    
+    const iframeBlob = new Blob([data.html], { type: "text/html" });
+    const iframeUrl = URL.createObjectURL(iframeBlob);
+
+    const modal = _createModalLarge("🕸️ Interactive Knowledge Graph", `
+      <p style="color:var(--ink-secondary);margin-bottom:8px">Extracted ${data.triple_count} entity-relationship triple(s) for this conversation:</p>
+      <iframe src="${iframeUrl}" class="kg-iframe"></iframe>
+      <div class="modal-actions">
+        <button type="button" class="mini-button" onclick="closeModal()">Close</button>
+      </div>
+    `);
+    document.body.appendChild(modal);
+  } catch (err) {
+    showToast("Failed to render Knowledge Graph", "error");
+  }
+}
+
+function openInfoModal() {
+  const modal = _createModalLarge("About AtelierAI", `
+    <h3 style="color:var(--ink);margin:0 0 10px">AtelierAI — AI Multimodal Orchestration Platform</h3>
+    <p style="color:var(--ink-secondary);line-height:1.6">
+      AtelierAI is a single conversational interface to create, transform, iterate, and deploy visual, narrative, and experiential content.
+    </p>
+    <ul style="color:var(--ink-secondary);line-height:1.7;margin:12px 0;padding-left:20px">
+      <li><strong>LLM Core:</strong> Groq LLaMA 3.3 (70b-versatile) for autonomous reasoning.</li>
+      <li><strong>MCP Agent:</strong> Autonomous tool-calling loop (Calculator, Search, File Reader, Wikipedia).</li>
+      <li><strong>AI Vector Art:</strong> Scene-specific SVG generation using LLaMA 3 vector synthesis.</li>
+      <li><strong>Knowledge Graph:</strong> NLP triple extraction pipeline with PyVis and NetworkX visualizer.</li>
+      <li><strong>Storage:</strong> SQLite relational persistence for conversations, memory, and profiles.</li>
+    </ul>
+    <div class="modal-actions"><button type="button" class="mini-button" onclick="closeModal()">Close</button></div>
+  `);
+  document.body.appendChild(modal);
+}
+
+function _createModalLarge(title, bodyHTML) {
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.id = "activeModal";
+  overlay.innerHTML = `
+    <div class="modal-box large">
+      <div class="modal-title">${title}</div>
+      ${bodyHTML}
+    </div>
+  `;
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
+  return overlay;
 }
 
 // ── Mode Switching ────────────────────────────────────────────────────────────
@@ -225,8 +486,8 @@ function loadMode(mode) { setMode(mode); }
 
 function resetChat() {
   state.conversationId = null;
-  state.messages       = [];
-  state.attachments    = [];
+  state.messages = [];
+  state.attachments = [];
   renderAttachmentTray();
   renderMessages();
   renderConversationList();
@@ -287,8 +548,8 @@ function renderQuickPrompts(prompts) {
   quickPrompts.innerHTML = "";
   prompts.forEach((prompt) => {
     const btn = document.createElement("button");
-    btn.className   = "chip-button";
-    btn.type        = "button";
+    btn.className = "chip-button";
+    btn.type = "button";
     btn.textContent = prompt;
     btn.addEventListener("click", () => { promptInput.value = prompt; promptInput.focus(); });
     quickPrompts.appendChild(btn);
@@ -301,11 +562,11 @@ function renderQuickPrompts(prompts) {
 
 async function loadHomeProfile() {
   try {
-    const res  = await fetch("/api/memory/home/profile");
+    const res = await fetch("/api/memory/home/profile");
     const data = await res.json();
     state.homeProfile = data;
     renderDeepMemoryPanel();
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function renderDeepMemoryPanel() {
@@ -319,9 +580,9 @@ function renderDeepMemoryPanel() {
   panel.style.display = "";
 
   const p = state.homeProfile;
-  const moods    = (p.mood_keywords    || []).slice(0, 8).join(", ") || "Not yet learned";
-  const styles   = (p.style_selections || []).slice(0, 5).join(", ") || "Not yet selected";
-  const palette  = (p.colour_palette   || []);
+  const moods = (p.mood_keywords || []).slice(0, 8).join(", ") || "Not yet learned";
+  const styles = (p.style_selections || []).slice(0, 5).join(", ") || "Not yet selected";
+  const palette = (p.colour_palette || []);
   const favCount = (p.favourite_asset_ids || []).length;
 
   const swatches = palette.length
@@ -345,20 +606,20 @@ function renderDeepMemoryPanel() {
 
 async function loadBusinessProfile() {
   try {
-    const res  = await fetch("/api/memory/business/profile");
+    const res = await fetch("/api/memory/business/profile");
     const data = await res.json();
     state.businessProfile = data;
     renderBrandKitPanel();
-  } catch (_) {}
+  } catch (_) { }
 }
 
 async function loadCampaigns() {
   try {
-    const res  = await fetch("/api/campaigns");
+    const res = await fetch("/api/campaigns");
     const data = await res.json();
     state.campaigns = data;
     renderBrandKitPanel();
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function renderBrandKitPanel() {
@@ -387,9 +648,9 @@ function renderBrandKitPanel() {
     <ul class="memory-list">
       <li><span class="memory-label">Name</span>${bp.business_name || '<span class="muted">Not set</span>'}</li>
       <li><span class="memory-label">Type</span>${bp.business_type || '<span class="muted">Not set</span>'}</li>
-      <li><span class="memory-label">Voice</span>${bp.brand_voice  || '<span class="muted">Not set</span>'}</li>
-      <li><span class="memory-label">Tagline</span>${bp.tagline    || '<span class="muted">Not set</span>'}</li>
-      <li><span class="memory-label">Values</span>${(bp.values_keywords||[]).join(", ") || '<span class="muted">Not set</span>'}</li>
+      <li><span class="memory-label">Voice</span>${bp.brand_voice || '<span class="muted">Not set</span>'}</li>
+      <li><span class="memory-label">Tagline</span>${bp.tagline || '<span class="muted">Not set</span>'}</li>
+      <li><span class="memory-label">Values</span>${(bp.values_keywords || []).join(", ") || '<span class="muted">Not set</span>'}</li>
       <li><span class="memory-label">Colours</span><span class="swatch-row">${colours}</span></li>
     </ul>
     <button type="button" class="mini-button" style="margin-top:10px" onclick="openBrandKitEditor()">✏️ Edit Brand Kit</button>
@@ -404,12 +665,12 @@ function renderBrandKitPanel() {
 function openBrandKitEditor() {
   const bp = state.businessProfile;
   const modal = _createModal("Edit Brand Kit", `
-    <label>Business name<input id="bk-name"   value="${bp.business_name  || ""}" placeholder="e.g. Café Mira" /></label>
-    <label>Business type<input id="bk-type"   value="${bp.business_type  || ""}" placeholder="e.g. restaurant, retail" /></label>
-    <label>Brand voice<input   id="bk-voice"  value="${bp.brand_voice    || ""}" placeholder="e.g. warm, premium, playful" /></label>
-    <label>Tagline<input       id="bk-tagline" value="${bp.tagline        || ""}" placeholder="e.g. Where every cup counts" /></label>
-    <label>Values (comma-separated)<input id="bk-values" value="${(bp.values_keywords||[]).join(", ")}" placeholder="e.g. local, sustainable, artisan" /></label>
-    <label>Primary colours (comma-separated hex)<input id="bk-colours" value="${(bp.primary_colours||[]).join(", ")}" placeholder="e.g. #1a1a2e, #e94560" /></label>
+    <label>Business name<input id="bk-name"   value="${bp.business_name || ""}" placeholder="e.g. Café Mira" /></label>
+    <label>Business type<input id="bk-type"   value="${bp.business_type || ""}" placeholder="e.g. restaurant, retail" /></label>
+    <label>Brand voice<input   id="bk-voice"  value="${bp.brand_voice || ""}" placeholder="e.g. warm, premium, playful" /></label>
+    <label>Tagline<input       id="bk-tagline" value="${bp.tagline || ""}" placeholder="e.g. Where every cup counts" /></label>
+    <label>Values (comma-separated)<input id="bk-values" value="${(bp.values_keywords || []).join(", ")}" placeholder="e.g. local, sustainable, artisan" /></label>
+    <label>Primary colours (comma-separated hex)<input id="bk-colours" value="${(bp.primary_colours || []).join(", ")}" placeholder="e.g. #1a1a2e, #e94560" /></label>
     <div class="modal-actions">
       <button type="button" class="mini-button" onclick="closeModal()">Cancel</button>
       <button type="button" class="mini-button primary" onclick="saveBrandKit()">Save</button>
@@ -420,15 +681,15 @@ function openBrandKitEditor() {
 
 async function saveBrandKit() {
   const payload = {
-    business_name:    document.getElementById("bk-name").value.trim(),
-    business_type:    document.getElementById("bk-type").value.trim(),
-    brand_voice:      document.getElementById("bk-voice").value.trim(),
-    tagline:          document.getElementById("bk-tagline").value.trim(),
-    values_keywords:  document.getElementById("bk-values").value.split(",").map((s) => s.trim()).filter(Boolean),
-    primary_colours:  document.getElementById("bk-colours").value.split(",").map((s) => s.trim()).filter(Boolean),
+    business_name: document.getElementById("bk-name").value.trim(),
+    business_type: document.getElementById("bk-type").value.trim(),
+    brand_voice: document.getElementById("bk-voice").value.trim(),
+    tagline: document.getElementById("bk-tagline").value.trim(),
+    values_keywords: document.getElementById("bk-values").value.split(",").map((s) => s.trim()).filter(Boolean),
+    primary_colours: document.getElementById("bk-colours").value.split(",").map((s) => s.trim()).filter(Boolean),
   };
   try {
-    const res  = await fetch("/api/memory/business/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await fetch("/api/memory/business/profile", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     const data = await res.json();
     state.businessProfile = data;
     renderBrandKitPanel();
@@ -455,14 +716,14 @@ function openNewCampaignDialog() {
 
 async function saveNewCampaign() {
   const payload = {
-    name:     document.getElementById("camp-name").value.trim(),
-    goal:     document.getElementById("camp-goal").value.trim(),
-    season:   document.getElementById("camp-season").value.trim(),
+    name: document.getElementById("camp-name").value.trim(),
+    goal: document.getElementById("camp-goal").value.trim(),
+    season: document.getElementById("camp-season").value.trim(),
     surfaces: document.getElementById("camp-surfaces").value.split(",").map((s) => s.trim()).filter(Boolean),
   };
   if (!payload.name) { showToast("Campaign name is required", "error"); return; }
   try {
-    const res  = await fetch("/api/campaigns", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await fetch("/api/campaigns", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     const data = await res.json();
     state.campaigns.unshift(data);
     renderBrandKitPanel();
@@ -523,7 +784,7 @@ async function handleUpload(event) {
   const formData = new FormData();
   formData.append("file", file);
   try {
-    const res     = await fetch("/api/uploads", { method: "POST", body: formData });
+    const res = await fetch("/api/uploads", { method: "POST", body: formData });
     const payload = await res.json();
     if (!res.ok) throw new Error(payload.detail || "Upload failed");
     state.attachments.push(payload.attachment);
@@ -550,25 +811,25 @@ function renderMessages() {
   }
 
   state.messages.forEach((message, idx) => {
-    const fragment    = messageTemplate.content.cloneNode(true);
-    const article     = fragment.querySelector(".message-card");
-    const roleEl      = fragment.querySelector(".message-role");
-    const tag         = fragment.querySelector(".message-tag");
-    const text        = fragment.querySelector(".message-text");
-    const outputGrid  = fragment.querySelector(".output-grid");
-    const attachBox   = fragment.querySelector(".message-attachments");
+    const fragment = messageTemplate.content.cloneNode(true);
+    const article = fragment.querySelector(".message-card");
+    const roleEl = fragment.querySelector(".message-role");
+    const tag = fragment.querySelector(".message-tag");
+    const text = fragment.querySelector(".message-text");
+    const outputGrid = fragment.querySelector(".output-grid");
+    const attachBox = fragment.querySelector(".message-attachments");
 
     article.classList.add(message.role);
     article.style.animationDelay = `${Math.min(idx * 50, 200)}ms`;
 
     // Build avatar + role
     if (message.role === "assistant") {
-      roleEl.innerHTML = `<span class="avatar vizzy">V</span> Vizzy`;
+      roleEl.innerHTML = `<span class="avatar vizzy">A</span> AtelierAI`;
     } else {
       roleEl.innerHTML = `<span class="avatar user-avatar">Y</span> You`;
     }
 
-    tag.textContent  = message.tag || "";
+    tag.textContent = message.tag || "";
     text.textContent = message.text;
 
     // Attachments
@@ -605,9 +866,9 @@ function renderWelcomeState() {
   const welcomeDiv = document.createElement("div");
   welcomeDiv.className = "welcome-state";
   welcomeDiv.innerHTML = `
-    <div class="welcome-icon">V</div>
+    <div class="welcome-icon">A</div>
     <h2 class="welcome-title">What will you create today?</h2>
-    <p class="welcome-subtitle">Start with a prompt, upload a reference image, or try one of these ideas. Vizzy returns visual, narrative, and deploy-ready directions.</p>
+    <p class="welcome-subtitle">Start with a prompt, upload a reference image, or try one of these ideas. AtelierAI returns visual, narrative, and deploy-ready directions.</p>
     <div class="welcome-suggestions" id="welcomeSuggestions"></div>
   `;
 
@@ -640,7 +901,7 @@ function showTypingIndicator() {
   indicator.id = "typingIndicator";
   indicator.innerHTML = `
     <div class="message-header">
-      <span class="message-role"><span class="avatar vizzy">V</span> Vizzy</span>
+      <span class="message-role"><span class="avatar vizzy">A</span> AtelierAI</span>
       <span class="message-tag">Thinking</span>
     </div>
     <div class="typing-dots">
@@ -664,13 +925,13 @@ function hideTypingIndicator() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function createOutputCard(asset, message) {
-  const fragment   = outputCardTemplate.content.cloneNode(true);
-  const image      = fragment.querySelector(".output-image");
-  const textBlock  = fragment.querySelector(".output-text");
-  const preview    = fragment.querySelector(".output-preview");
+  const fragment = outputCardTemplate.content.cloneNode(true);
+  const image = fragment.querySelector(".output-image");
+  const textBlock = fragment.querySelector(".output-text");
+  const preview = fragment.querySelector(".output-preview");
 
-  fragment.querySelector(".output-type").textContent        = asset.type;
-  fragment.querySelector(".output-title").textContent       = asset.title;
+  fragment.querySelector(".output-type").textContent = asset.type;
+  fragment.querySelector(".output-title").textContent = asset.title;
   fragment.querySelector(".output-description").textContent = asset.description;
 
   if (asset.preview_url) {
@@ -694,7 +955,7 @@ function createOutputCard(asset, message) {
   const actionsContainer = fragment.querySelector(".output-actions");
   (asset.actions || []).forEach((action) => {
     const btn = document.createElement("button");
-    btn.type      = "button";
+    btn.type = "button";
     btn.className = "mini-button";
     btn.textContent = action.label;
     btn.addEventListener("click", () => handleAction(action, asset, message));
@@ -743,8 +1004,8 @@ function handleAction(action, asset, message) {
     case "download":
       if (asset.preview_url) {
         const a = document.createElement("a");
-        a.href     = asset.preview_url;
-        a.download = asset.filename || "vizzy-output";
+        a.href = asset.preview_url;
+        a.download = asset.filename || "atelierai-output";
         a.click();
         showToast("Download started", "success");
       }
@@ -790,7 +1051,7 @@ async function handleExport(surface, asset, message) {
   showToast(`Preparing ${surface} export...`, "info");
 
   try {
-    const res  = await fetch("/api/export", {
+    const res = await fetch("/api/export", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -803,14 +1064,14 @@ async function handleExport(surface, asset, message) {
 
     if (data.download_url) {
       const a = document.createElement("a");
-      a.href     = data.download_url;
+      a.href = data.download_url;
       a.download = "";
       a.click();
       showToast("Download ready", "success");
     } else if (data.download_urls?.length) {
       data.download_urls.forEach((url) => {
         const a = document.createElement("a");
-        a.href     = url;
+        a.href = url;
         a.download = "";
         document.body.appendChild(a);
         a.click();
@@ -846,7 +1107,7 @@ async function sendFeedback(asset, signal, message) {
     });
     void loadHomeProfile();
     if (signal === "like") showToast("Taste memory updated ❤", "success");
-  } catch (_) {}
+  } catch (_) { }
 }
 
 // ── Add to Campaign ───────────────────────────────────────────────────────────
@@ -893,7 +1154,7 @@ async function handleGenerate() {
   if (state.isGenerating) return;
 
   state.isGenerating = true;
-  generateButton.disabled    = true;
+  generateButton.disabled = true;
   generateButton.textContent = "⏳ Generating...";
   generateButton.classList.add("generating");
 
@@ -939,7 +1200,7 @@ async function handleGenerate() {
     renderMessages();
 
     await refreshConversations();
-    if (state.mode === "home")     void loadHomeProfile();
+    if (state.mode === "home") void loadHomeProfile();
     if (state.mode === "business") void loadBusinessProfile();
 
     showToast("Creative directions ready ✨", "success");
@@ -954,7 +1215,7 @@ async function handleGenerate() {
     showToast(err.message || "Generation failed", "error");
   } finally {
     state.isGenerating = false;
-    generateButton.disabled    = false;
+    generateButton.disabled = false;
     generateButton.textContent = "✨ Generate";
     generateButton.classList.remove("generating");
   }
@@ -966,43 +1227,55 @@ async function handleGenerate() {
 
 async function refreshConversations() {
   try {
-    const res     = await fetch("/api/conversations");
+    const res = await fetch("/api/conversations");
     const payload = await res.json();
     state.conversations = payload;
     renderConversationList();
-  } catch (_) {}
+  } catch (_) { }
 }
 
-function renderConversationList() {
+function renderConversationList(query = "") {
   conversationList.innerHTML = "";
-  historyCount.textContent = `${state.conversations.length}`;
+  let list = state.conversations;
 
-  if (!state.conversations.length) {
-    conversationList.innerHTML = '<div class="history-item" style="text-align:center;color:var(--muted)">No saved chats yet.<br>Your first prompt will start one.</div>';
+  if (query) {
+    list = list.filter((conv) => (conv.title || "").toLowerCase().includes(query) || (conv.mode || "").toLowerCase().includes(query));
+  }
+
+  historyCount.textContent = `${list.length}`;
+
+  if (!list.length) {
+    conversationList.innerHTML = `<div class="history-item" style="text-align:center;color:var(--muted);justify-content:center">${query ? "No matching chats found." : "No saved chats yet.<br>Your first prompt will start one."}</div>`;
     return;
   }
 
-  state.conversations.forEach((conv) => {
-    const btn = document.createElement("button");
-    btn.type      = "button";
-    btn.className = "history-item";
-    if (conv.id === state.conversationId) btn.classList.add("active");
-    btn.innerHTML = `
-      <span class="memory-label">${conv.mode}</span>
-      <span class="history-item-title">${conv.title}</span>
+  list.forEach((conv) => {
+    const item = document.createElement("div");
+    item.className = "history-item";
+    if (conv.id === state.conversationId) item.classList.add("active");
+    
+    item.innerHTML = `
+      <div class="history-item-info">
+        <span class="memory-label" style="text-transform:uppercase">${conv.mode}</span>
+        <span class="history-item-title" style="font-weight:600">${conv.title}</span>
+      </div>
     `;
-    btn.addEventListener("click", () => void loadConversation(conv.id));
-    conversationList.appendChild(btn);
+
+    item.addEventListener("click", (e) => {
+      loadConversation(conv.id);
+    });
+
+    conversationList.appendChild(item);
   });
 }
 
 async function loadConversation(conversationId) {
   try {
-    const res     = await fetch(`/api/conversations/${conversationId}`);
+    const res = await fetch(`/api/conversations/${conversationId}`);
     const payload = await res.json();
     state.conversationId = payload.conversation.id;
-    state.messages       = payload.messages;
-    state.attachments    = [];
+    state.messages = payload.messages;
+    state.attachments = [];
     renderAttachmentTray();
 
     if (payload.conversation.mode !== state.mode) {

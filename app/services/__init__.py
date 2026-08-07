@@ -1,1 +1,1 @@
-"""Service helpers for Vizzy Chat."""
+"""Service helpers for AtelierAI."""

@@ -9,6 +9,9 @@ from pathlib import Path
 from textwrap import shorten
 
 from app.services.generator import generate_assets, detect_task_type, TaskType
+from app.services.mcp_tools import run_mcp_agent
+from app.services.knowledge_graph import extract_for_conversation
+from app import crud
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -269,6 +272,41 @@ def suggest_title(prompt: str, mode: str) -> str:
     return f"{prefix}: {shorten(prompt, width=36, placeholder='...')}"
 
 
+# ── MCP agent detection ───────────────────────────────────────────────────────
+# Keywords that suggest the user wants factual lookup / calculation, not image generation.
+
+_MCP_TRIGGERS = {
+    "who is", "who was", "what is", "what are", "what was",
+    "when did", "when was", "where is", "where was",
+    "how does", "how did", "how many", "how much",
+    "calculate", "compute", "what is the result",
+    "search for", "find information", "look up", "tell me about",
+    "explain", "define", "summarize",
+}
+
+
+def _is_mcp_request(prompt: str) -> bool:
+    """Return True if the prompt looks like a knowledge/lookup/calculation request."""
+    lowered = prompt.lower().strip()
+    return any(lowered.startswith(trigger) or trigger in lowered for trigger in _MCP_TRIGGERS)
+
+
+# ── Knowledge Graph extraction (background, best-effort) ──────────────────────
+
+def _try_extract_knowledge_graph(conversation_id: int) -> None:
+    """
+    Extract knowledge triples from the full conversation and persist them.
+    Called after each assistant reply; silently ignored on failure.
+    """
+    try:
+        messages = crud.get_messages(conversation_id)
+        triples  = extract_for_conversation(messages)
+        if triples:
+            crud.save_knowledge_triples(conversation_id, triples)
+    except Exception:
+        pass  # Never crash the main request due to KG extraction
+
+
 # ── Main reply builder ────────────────────────────────────────────────────────
 
 def build_assistant_reply(
@@ -282,6 +320,56 @@ def build_assistant_reply(
     lowered = prompt.lower()
     memory_keywords = memory_keywords or []
     attachments     = attachments or []
+
+    # ── MCP Agent mode ────────────────────────────────────────────────────────
+    # Route knowledge/lookup/calculation requests to the agentic tool-calling loop
+    if _is_mcp_request(prompt) and not attachments:
+        agent_result = run_mcp_agent(prompt)
+        steps        = agent_result.get("steps", [])
+        tool_calls   = agent_result.get("tool_calls", [])
+        final_answer = agent_result.get("final_answer", "")
+
+        # Build step-by-step display text
+        steps_text_parts = []
+        for step in steps:
+            if step.get("role") == "tool_call":
+                args_str = ", ".join(f"{k}={v}" for k, v in step.get("arguments", {}).items())
+                steps_text_parts.append(f"🔧 Tool: {step['tool']}({args_str})")
+            elif step.get("role") == "tool_result":
+                snippet = step.get("content", "")[:200]
+                steps_text_parts.append(f"📄 Result: {snippet}..." if len(step.get("content", "")) > 200 else f"📄 Result: {snippet}")
+
+        steps_text = "\n".join(steps_text_parts) if steps_text_parts else "No tools needed — answered from model knowledge."
+
+        assets = [
+            {
+                "type": "MCP Agent",
+                "title": "Reasoning Steps",
+                "description": f"Tool-calling agentic loop: {len(tool_calls)} tool(s) used.",
+                "text_content": steps_text,
+                "actions": [
+                    {"label": "Ask follow-up",   "prompt_suffix": " — please elaborate."},
+                    {"label": "Simplify answer", "prompt_suffix": "Explain that in simpler terms."},
+                    {"label": "Go deeper",        "prompt_suffix": "Give me more detail on this topic."},
+                ],
+            },
+            {
+                "type": "Final Answer",
+                "title": "Agent Response",
+                "description": "Synthesized answer after tool-calling reasoning.",
+                "text_content": final_answer,
+                "actions": [
+                    {"label": "Ask follow-up",   "prompt_suffix": " — please elaborate."},
+                    {"label": "Summarize",        "prompt_suffix": "Give me a one-paragraph summary."},
+                ],
+            },
+        ]
+
+        # Still trigger KG extraction from the answer
+        if conversation_id is not None:
+            _try_extract_knowledge_graph(conversation_id)
+
+        return "Agent response", final_answer, assets
 
     task_type = detect_task_type(prompt, attachments)
 
@@ -403,6 +491,11 @@ def build_assistant_reply(
                 "I interpreted this as a brand-facing brief and created visual outputs, "
                 "model-generated messaging, and deployment directions for multiple surfaces."
             )
+
+    # ── Knowledge Graph extraction ────────────────────────────────────────────
+    # Run after every successful reply; silently skipped if Groq key is absent
+    if conversation_id is not None:
+        _try_extract_knowledge_graph(conversation_id)
 
     return tag, text, assets
 

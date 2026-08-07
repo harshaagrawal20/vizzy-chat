@@ -151,9 +151,26 @@ def init_db() -> None:
             """
         )
 
+        # ── Knowledge Graph: extracted triples ───────────────────────────────
+        # Each row is one (subject, predicate, object) triple extracted from
+        # a conversation using the LLM extraction pipeline (Topic 25).
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS knowledge_triples (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                conversation_id INTEGER NOT NULL,
+                subject         TEXT    NOT NULL,
+                predicate       TEXT    NOT NULL,
+                object          TEXT    NOT NULL,
+                created_at      TEXT    NOT NULL,
+                FOREIGN KEY (conversation_id) REFERENCES conversations (id)
+            )
+            """
+        )
+
         # ── Migrations: add columns to existing installs ──────────────────────
-        _ensure_column(connection, "messages",  "attachments_json", "TEXT")
-        _ensure_column(connection, "conversations", "updated_at",   "TEXT")
+        _ensure_column(connection, "messages",      "attachments_json", "TEXT")
+        _ensure_column(connection, "conversations", "updated_at",       "TEXT")
 
         connection.commit()
 

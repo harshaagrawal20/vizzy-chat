@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Vizzy Chat — your single conversational interface to create, transform, iterate, and deploy visual, narrative, and experiential content for homes and businesses." />
+  <meta name="description" content="AtelierAI — your single conversational interface to create, transform, iterate, and deploy visual, narrative, and experiential content for homes and businesses." />
   <meta name="theme-color" content="#0f1117" />
-  <title>Vizzy Chat — Creative Operating System</title>
+  <title>AtelierAI — AI Creative Studio</title>
 
   <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23ff4f1a'/><text x='50' y='70' font-family='Arial' font-size='60' font-weight='900' fill='white' text-anchor='middle'>V</text></svg>" type="image/svg+xml" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23ff4f1a'/><text x='50' y='70' font-family='Arial' font-size='60' font-weight='900' fill='white' text-anchor='middle'>A</text></svg>" type="image/svg+xml" />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -21,27 +21,27 @@
   <div class="app-frame">
     <aside class="left-rail">
       <div class="brand-block">
-        <div class="brand-mark">V</div>
+        <div class="brand-mark">A</div>
         <div>
-          <p class="brand-kicker">Creative OS</p>
-          <h1>Vizzy Chat</h1>
+          <p class="brand-kicker">AI Creative Studio</p>
+          <h1>AtelierAI</h1>
         </div>
       </div>
 
       <nav class="nav-panel">
         <button class="nav-item active" type="button" id="navChat">Creative Workspace</button>
-        <button class="nav-item" type="button">Templates</button>
-        <button class="nav-item" type="button">Projects</button>
-        <button class="nav-item" type="button">Surfaces</button>
-        <button class="nav-item" type="button">Settings</button>
+        <button class="nav-item" type="button" id="navTemplates">Templates</button>
+        <button class="nav-item" type="button" id="navProjects">Projects</button>
+        <button class="nav-item" type="button" id="navSurfaces">Surfaces</button>
+        <button class="nav-item" type="button" id="navSettings">Settings</button>
       </nav>
-
+      
       <section class="rail-card mode-card">
         <div class="section-head">
           <h2>Mode</h2>
           <span class="pill live">Live</span>
         </div>
-        <div class="mode-switch" role="tablist" aria-label="Vizzy mode">
+        <div class="mode-switch" role="tablist" aria-label="AtelierAI mode">
           <button class="mode-button active" data-mode="home" type="button">Homes</button>
           <button class="mode-button" data-mode="business" type="button">Business</button>
         </div>
@@ -77,14 +77,15 @@
       <header class="topbar">
         <div>
           <p class="topbar-kicker">Conversational creation</p>
-          <h2>Creative Workspace</h2>
+          <h2 id="currentViewTitle">Creative Workspace</h2>
         </div>
         <div class="topbar-tools">
           <label class="search-box">
             <input type="search" placeholder="Search conversations..." id="searchInput" />
           </label>
           <button class="icon-button" type="button" id="uploadButton" title="Upload image">+</button>
-          <button class="icon-button" type="button" title="Info">i</button>
+          <button class="icon-button" type="button" id="kgButton" title="View Knowledge Graph">🕸️</button>
+          <button class="icon-button" type="button" id="infoButton" title="System Info">i</button>
         </div>
       </header>
 
@@ -104,7 +105,7 @@
           <input id="fileInput" type="file" accept="image/*" hidden />
           <div class="attachment-tray" id="attachmentTray"></div>
           <label class="composer">
-            <textarea id="promptInput" rows="3" placeholder="Describe what you want Vizzy to create..."></textarea>
+            <textarea id="promptInput" rows="3" placeholder="Describe what you want AtelierAI to create..."></textarea>
           </label>
           <div class="composer-footer">
             <div class="composer-meta" id="surfaceList"></div>

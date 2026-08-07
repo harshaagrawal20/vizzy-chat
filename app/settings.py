@@ -43,6 +43,8 @@ class Settings:
     image_width: int = int(os.getenv("VIZZY_IMAGE_WIDTH", "512"))
     image_height: int = int(os.getenv("VIZZY_IMAGE_HEIGHT", "512"))
     image_steps: int = int(os.getenv("VIZZY_IMAGE_STEPS", _default_steps()))
+    groq_api_key: str = os.getenv("GROQ_API_KEY", "")
+    fal_key: str = os.getenv("FAL_KEY", "")
 
 
 settings = Settings()

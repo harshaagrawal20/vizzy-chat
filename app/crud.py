@@ -487,3 +487,53 @@ def update_video_job(job_id: int, status: str, output_url: str = "", error_messa
         connection.commit()
         row = connection.execute("SELECT * FROM video_jobs WHERE id=?", (job_id,)).fetchone()
     return dict(row) if row else None
+
+
+# ── Knowledge Graph triples (Topic 25) ───────────────────────────────────────
+
+def save_knowledge_triples(conversation_id: int, triples: list[dict]) -> int:
+    """
+    Persist a batch of (subject, predicate, object) triples for a conversation.
+    Clears previous triples for that conversation first so we don't accumulate duplicates.
+    Returns the number of rows inserted.
+    """
+    now = _utc_now()
+    with get_connection() as connection:
+        connection.execute(
+            "DELETE FROM knowledge_triples WHERE conversation_id = ?",
+            (conversation_id,),
+        )
+        connection.executemany(
+            """
+            INSERT INTO knowledge_triples (conversation_id, subject, predicate, object, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    conversation_id,
+                    str(t.get("subject", "")).strip(),
+                    str(t.get("predicate", "")).strip(),
+                    str(t.get("object", "")).strip(),
+                    now,
+                )
+                for t in triples
+                if t.get("subject") and t.get("predicate") and t.get("object")
+            ],
+        )
+        connection.commit()
+    return len(triples)
+
+
+def get_knowledge_triples(conversation_id: int) -> list[dict]:
+    """Return all saved triples for a conversation as a list of dicts."""
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT id, conversation_id, subject, predicate, object, created_at
+            FROM knowledge_triples
+            WHERE conversation_id = ?
+            ORDER BY id ASC
+            """,
+            (conversation_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
